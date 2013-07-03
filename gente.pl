@@ -48,36 +48,45 @@ post '/' => sub {
   }
   else {
     $self->app->log->debug('LDAP Connected');
-    my $mesg = $ldap->start_tls( verify => 'require', cafile => $cafile );
-    if ( $mesg->code ) {
-      $error = "Unable to start TLS to $server using $cafile";
-      $self->app->log->error($error);
-      $status = 500;
-      $result = 'An internal error occured';
+    my $mesg;
+    if ($cafile ne '')
+    {
+      $mesg = $ldap->start_tls( verify => 'require', cafile => $cafile );
+      if ( $mesg->code ) {
+        $error = "Unable to start TLS to $server using $cafile";
+        $self->app->log->error($error);
+        $status = 500;
+        $result = 'An internal error occured';
+	goto TLS_FAIL;
+      }
+      $self->app->log->debug('TLS Enabled');
     }
     else {
-      $self->app->log->debug('TLS Enabled');
-      $mesg = $ldap->bind( "uid=$username,$dn", password => $old );
+      $self->app->log->debug('No TLS needed');
+    }
+
+    $mesg = $ldap->bind( "uid=$username,$dn", password => $old );
+    if ( $mesg->code ) {
+      $error = "Unable to bind as $username. Server says " . $mesg->error;
+      $self->app->log->info($error);
+      $result = 'Unable to change your password. Try again or get help.';
+    }
+    else {
+      $self->app->log->debug('User Bound');
+      $mesg = $ldap->set_password( oldpasswd => $old, newpasswd => $new );
       if ( $mesg->code ) {
-        $error = "Unable to bind as $username. Server says " . $mesg->error;
+        $error = "Unable to change password as $username. Server says "
+          . $mesg->error;
         $self->app->log->info($error);
         $result = 'Unable to change your password. Try again or get help.';
       }
       else {
-        $self->app->log->debug('User Bound');
-        $mesg = $ldap->set_password( oldpasswd => $old, newpasswd => $new );
-        if ( $mesg->code ) {
-          $error = "Unable to change password as $username. Server says "
-            . $mesg->error;
-          $self->app->log->info($error);
-          $result = 'Unable to change your password. Try again or get help.';
-        }
-        else {
-          $self->app->log->debug('Password Changed');
-          $result = 'Your password was successfully changed';
-        }
+        $self->app->log->debug('Password Changed');
+        $result = 'Your password was successfully changed';
       }
     }
+
+TLS_FAIL:  
     $ldap->unbind();
   }
   $self->render( 'feedback', status => $status, result => $result );
