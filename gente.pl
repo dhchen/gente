@@ -108,20 +108,36 @@ __DATA__
 
 @@ form.html.ep
 % layout 'default';
-<%= form_for '/' => (method => 'post') => begin %>
-Username:
-<%= input_tag 'username' %>
-<br>
-Old Password:
+<%= form_for '/' => (method => 'post', class => 'form-horizontal') => begin %>
+<div class="control-group">
+<label class="control-label">Username:</label>
+<div class="controls">
+<%= input_tag 'username', type => 'text' %>
+</div>
+</div>
+<div class="control-group">
+<label class="control-label">Old Password:</label>
+<div class="controls">
 <%= input_tag 'old', type => 'password' %>
-<br>
-New Password:
+</div>
+</div>
+<div class="control-group">
+<label class="control-label">New Password:</label>
+<div class="controls">
 <%= input_tag 'new', type => 'password' %>
-<br>
-Confirm Password:
+</div>
+</div>
+<div class="control-group">
+<label class="control-label">Confirm Password:</label>
+<div class="controls">
 <%= input_tag 'new_confirm', type => 'password' %>
-<br>
+</div>
+</div>
+<div class="control-group">
+<div class="controls">
 <%= submit_button %>
+</div>
+</div>
 <% end %>
 
 @@ feedback.html.ep
@@ -134,6 +150,7 @@ Confirm Password:
   <head>
     <title><%= title %></title>
     <script type="text/javascript" src="jquery-1.10.2.min.js"></script>
+    <link href="bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">  
   </head>
   <body>
     <h1> <%= title %> </h1>
