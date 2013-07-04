@@ -32,6 +32,7 @@ post '/' => sub {
   my $username = $self->param('username');
   my $old      = $self->param('old');
   my $new      = $self->param('new');
+  my $new_c    = $self->param('new_confirm');
 
   my $error;
   my $result;
@@ -39,6 +40,13 @@ post '/' => sub {
 
   # these nested ifs are ridiculously hard to follow
   # should return early instead
+  if ($new ne $new_c){
+    $error = "Password does not match";
+    $self->app->log->error($error);
+    $result = 'Password does not match';
+    goto FINAL;
+  }
+
   my $ldap = Net::LDAP->new($server);
   if ( not $ldap ) {
     $error = "Unable to connect to $server";
@@ -78,7 +86,8 @@ post '/' => sub {
         $error = "Unable to change password as $username. Server says "
           . $mesg->error;
         $self->app->log->info($error);
-        $result = 'Unable to change your password. Try again or get help.';
+        $result = 'Unable to change your password.';
+        $result .= ' Password constraint violation:' . $mesg->error if ($mesg->code==19); 
       }
       else {
         $self->app->log->debug('Password Changed');
@@ -89,6 +98,7 @@ post '/' => sub {
 TLS_FAIL:  
     $ldap->unbind();
   }
+FINAL:
   $self->render( 'feedback', status => $status, result => $result );
 
 };
@@ -108,6 +118,9 @@ Old Password:
 New Password:
 <%= input_tag 'new', type => 'password' %>
 <br>
+Confirm Password:
+<%= input_tag 'new_confirm', type => 'password' %>
+<br>
 <%= submit_button %>
 <% end %>
 
@@ -118,7 +131,10 @@ New Password:
 
 @@ layouts/default.html.ep
 <!doctype html><html>
-  <head><title><%= title %></title></head>
+  <head>
+    <title><%= title %></title>
+    <script type="text/javascript" src="jquery-1.10.2.min.js"></script>
+  </head>
   <body>
     <h1> <%= title %> </h1>
     <%= content %>
